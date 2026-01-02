@@ -18,3 +18,20 @@ body {
 .shadow-default {
   box-shadow: 0 1px 3px rgba(16,24,40,0.06);
 }
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(148,163,184,0.12);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* helper: slightly lighter translucent panel background (used in components above) */
+.bg-white\/3 { background-color: rgba(255,255,255,0.03); }
