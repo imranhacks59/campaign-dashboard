@@ -8,6 +8,7 @@ import DonutChart from '../components/DonutChart';
 import CampaignList from '../components/CampaignList';
 import Loading from '../components/Loading';
 import { useCampaignSSE } from '../hooks/useCampaignSSE';
+import AggregateInsightsCard from '../components/AggregateInsightsCard';
 
 const formatNumber = (n?: number) => (typeof n === 'number' ? n.toLocaleString() : '-');
 const formatCurrency = (n?: number) => (typeof n === 'number' ? `$${n.toLocaleString()}` : '-');
@@ -115,42 +116,35 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
           {/* Left column */}
           <div className="xl:col-span-3 space-y-4 self-start">
-            {/* sticky container: compute top offset using CSS var exposed by Layout */}
             <div style={{ position: 'sticky', top: 'calc(var(--header-height) + 24px)' }}>
               <CampaignList
                 items={filteredCampaigns}
                 onSelect={(id) => setSelectedCampaign(id)}
                 selectedId={selectedCampaign}
-                // set maxHeight so list doesn't push content down
                 maxHeight="calc(100vh - 220px)"
               />
-              <div className="mt-4">
-                <DonutChart series={donutSeries} labels={['Active', 'Paused', 'Completed']} title="Campaign Status" />
-              </div>
             </div>
+      
           </div>
 
           {/* Center */}
           <div className="xl:col-span-6 space-y-4 self-start">
-            <ChartOne title="Top campaigns (daily budget)" series={series} categories={categories} chartId="top-campaigns" />
-            <div className="rounded-lg bg-white/3 border border-slate-800 p-4 shadow-sm">
-              <h3 className="text-sm font-medium text-slate-100">Aggregate Insights</h3>
-              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+            {/* Single card containing chart + aggregate insights */}
+            <div className="rounded-lg bg-white/3 border border-slate-800 overflow-hidden">
+              <div className="flex items-start justify-between px-4 py-3 border-b border-slate-800">
                 <div>
-                  <div className="text-xs text-slate-400">Impressions</div>
-                  <div className="font-semibold text-slate-100">{formatNumber(aggData?.insights?.total_impressions)}</div>
+                  <div className="text-sm font-semibold text-slate-100">Top campaigns (daily budget)</div>
+                  <div className="text-xs text-slate-400 mt-1">Top performing campaigns by daily budget</div>
                 </div>
-                <div>
-                  <div className="text-xs text-slate-400">Clicks</div>
-                  <div className="font-semibold text-slate-100">{formatNumber(aggData?.insights?.total_clicks)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">Conversions</div>
-                  <div className="font-semibold text-slate-100">{formatNumber(aggData?.insights?.total_conversions)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-slate-400">Avg CPC</div>
-                  <div className="font-semibold text-slate-100">${formatNumber(aggData?.insights?.avg_cpc)}</div>
+              </div>
+
+              <div className="p-4">
+                {/* ChartOne in canvas-only mode so it fits inside this card */}
+                <ChartOne series={series} categories={categories} chartId="top-campaigns" renderChartOnly />
+
+                {/* Aggregate insights rendered as four mini stat cards inside the same container */}
+                <div className="mt-4">
+                  <AggregateInsightsCard insights={aggData?.insights ?? null} />
                 </div>
               </div>
             </div>
@@ -190,6 +184,10 @@ const Dashboard: React.FC = () => {
                 <li>Campaign "Holiday Special - YouTube" reached 50% of daily budget</li>
                 <li>Auto-optimization ran for 3 campaigns</li>
               </ul>
+            </div>
+
+            <div className="mt-4">
+              <DonutChart series={donutSeries} labels={['Active', 'Paused', 'Completed']} title="Campaign Status" />
             </div>
           </div>
         </div>
