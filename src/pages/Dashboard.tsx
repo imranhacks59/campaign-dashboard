@@ -182,9 +182,9 @@ const Dashboard: React.FC = () => {
               <CampaignList items={filteredCampaigns} onSelect={handleSelectCampaign} selectedId={selectedCampaign} maxHeight="calc(100vh - 220px)" />
             </div>
 
-            <div className="mt-4">
-              <DonutChart series={donutSeries} labels={['Active', 'Paused', 'Completed']} title="Campaign Status" />
-            </div>
+          
+
+          
           </div>
 
           <div className="xl:col-span-6 space-y-4 self-start">

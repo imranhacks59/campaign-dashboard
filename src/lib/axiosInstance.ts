@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const DEFAULT_BASE = 'https://mixo-fe-backend-task.vercel.app';
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string) || DEFAULT_BASE;
+const BASE_URL = DEFAULT_BASE;
 
 const axiosInstance = axios.create({
   baseURL: BASE_URL,

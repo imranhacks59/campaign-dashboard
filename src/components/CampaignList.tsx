@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Campaign } from '../types';
 import clsx from 'clsx';
+import { Campaign } from '@/types/types';
 
 interface Props {
   items: Campaign[];

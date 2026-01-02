@@ -10,10 +10,7 @@ interface Props {
   className?: string;
 }
 
-/**
- * DonutChart without hover-animation and without a center overlay.
- * Hover updates the right-side summary only; the chart itself remains static.
- */
+
 const DonutChart: React.FC<Props> = ({
   series,
   labels,
@@ -36,6 +33,7 @@ const DonutChart: React.FC<Props> = ({
   useEffect(() => {
     if (!isMounted || !ref.current) return;
 
+    // ApexOptions typing expects 'states' at the top-level of options (not under chart).
     const options: ApexOptions = {
       chart: {
         type: 'donut',
@@ -43,12 +41,22 @@ const DonutChart: React.FC<Props> = ({
         toolbar: { show: false },
         id: chartId,
         animations: { enabled: false }, // disable animations so hover doesn't animate slices
-        // states config to stop hover filter/brightness changes
-        states: {
-          hover: {
-            filter: {
-              type: 'none'
-            }
+        // events used only to update the hovered index (no animations)
+        events: {
+          dataPointMouseEnter: (_event: any, _chartContext: any, config: any) => {
+            const idx = config?.dataPointIndex;
+            if (typeof idx === 'number') setHoveredIdx(idx);
+          },
+          dataPointMouseLeave: () => {
+            setHoveredIdx(null);
+          }
+        }
+      },
+      // states must be specified at the top-level of the options object (not under chart)
+      states: {
+        hover: {
+          filter: {
+            type: 'none'
           }
         }
       },
@@ -81,17 +89,7 @@ const DonutChart: React.FC<Props> = ({
             plotOptions: { pie: { donut: { size: '60%' } } }
           }
         }
-      ],
-      // events used only to update the hovered index (no animations)
-      events: {
-        dataPointMouseEnter: (_event: any, _chartContext: any, config: any) => {
-          const idx = config?.dataPointIndex;
-          if (typeof idx === 'number') setHoveredIdx(idx);
-        },
-        dataPointMouseLeave: () => {
-          setHoveredIdx(null);
-        }
-      }
+      ]
     };
 
     const chart = new ApexCharts(ref.current, { ...options, series });

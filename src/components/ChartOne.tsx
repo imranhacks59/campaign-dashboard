@@ -4,12 +4,12 @@ import type { ApexOptions } from 'apexcharts';
 import { FiDownload, FiChevronDown } from 'react-icons/fi';
 
 const defaultColors = [
-  '#60a5fa',    // blue-400
-  '#34d399',    // green-400
-  '#fbbf24',    // amber-400
-  '#4ade80',    // lime-400
-  '#f87171',    // red-400
-  '#a78bfa'     // violet-400
+  '#60a5fa', // blue-400
+  '#34d399', // green-400
+  '#fbbf24', // amber-400
+  '#4ade80', // lime-400
+  '#f87171', // red-400
+  '#a78bfa'  // violet-400
 ];
 
 const baseOptions: ApexOptions = {
@@ -17,26 +17,26 @@ const baseOptions: ApexOptions = {
   chart: {
     fontFamily: 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto',
     type: 'bar',
-    height: 380, // ← increased for better spacing
+    height: 380,
     stacked: false,
     toolbar: { show: false },
     zoom: { enabled: false },
-    animations: { enabled: true },
+    animations: { enabled: true }
   },
   plotOptions: {
     bar: {
       horizontal: false,
       borderRadius: 6,
-      columnWidth: '55%',
-    },
+      columnWidth: '55%'
+    }
   },
   dataLabels: {
-    enabled: false, // we enable conditionally via prop
+    enabled: false,
     offsetY: -20,
     style: {
       fontSize: '13px',
-      colors: ['#e5e7eb'],
-    },
+      colors: ['#e5e7eb']
+    }
   },
   xaxis: {
     categories: [],
@@ -46,41 +46,41 @@ const baseOptions: ApexOptions = {
       trim: true,
       minHeight: 80,
       style: {
-        colors: '#d1d5db', // gray-300
+        colors: '#d1d5db',
         fontSize: '13px',
-        fontWeight: 500,
-      },
+        fontWeight: 500
+      }
     },
-    tickPlacement: 'on',
+    tickPlacement: 'on'
   },
   yaxis: {
     labels: {
       style: {
         colors: '#d1d5db',
-        fontSize: '14px', // ← bigger and more visible
-        fontWeight: 500,
+        fontSize: '14px',
+        fontWeight: 500
       },
       formatter: (value: number) => {
         if (value >= 1e7) return (value / 1e7).toFixed(1) + 'Cr';
         if (value >= 1e5) return (value / 1e5).toFixed(1) + 'L';
         if (value >= 1e3) return (value / 1e3).toFixed(1) + 'K';
         return value.toFixed(0);
-      },
-    },
+      }
+    }
   },
   grid: {
-    borderColor: '#374151', // gray-700
-    strokeDashArray: 4,
+    borderColor: '#374151',
+    strokeDashArray: 4
   },
   legend: {
     show: true,
     position: 'top',
     horizontalAlign: 'left',
     labels: {
-      colors: '#e5e7eb',
+      colors: '#e5e7eb'
     },
     markers: { strokeWidth: 0 },
-    fontSize: '14px',
+    fontSize: '14px'
   },
   tooltip: {
     enabled: true,
@@ -90,18 +90,18 @@ const baseOptions: ApexOptions = {
     theme: 'dark',
     style: {
       fontSize: '14px',
-      fontFamily: 'Inter, sans-serif',
+      fontFamily: 'Inter, sans-serif'
     },
     y: {
-      formatter: (val: number) => (val !== undefined ? val.toLocaleString() : '—'),
-    },
-  },
+      formatter: (val: number) => (val !== undefined ? val.toLocaleString() : '—')
+    }
+  }
 };
 
 type Series = { name: string; data: number[] }[];
 
 interface Props {
-  title: string;
+  title?: string;
   subtitle?: string;
   series: Series;
   categories: string[];
@@ -110,6 +110,8 @@ interface Props {
   chartId?: string;
   isDataLabels?: boolean;
   className?: string;
+  // NEW: if true, render only the raw chart canvas (no card/header)
+  renderChartOnly?: boolean;
 }
 
 const ChartOne: React.FC<Props> = ({
@@ -120,8 +122,9 @@ const ChartOne: React.FC<Props> = ({
   barColors = [],
   isFullWidth = false,
   chartId = `chart-${Math.random().toString(36).slice(2, 9)}`,
-  isDataLabels = true, // ← default to true now
+  isDataLabels = true,
   className = '',
+  renderChartOnly = false
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<any>(null);
@@ -137,22 +140,22 @@ const ChartOne: React.FC<Props> = ({
       ...baseOptions,
       chart: {
         ...baseOptions.chart,
-        id: chartId,
+        id: chartId
       },
       colors: barColors.length ? barColors : baseOptions.colors,
       xaxis: {
         ...baseOptions.xaxis,
-        categories,
+        categories
       },
       dataLabels: {
         ...baseOptions.dataLabels,
-        enabled: isDataLabels,
-      },
+        enabled: isDataLabels
+      }
     };
 
     const apx = new ApexCharts(containerRef.current, {
       ...options,
-      series,
+      series
     });
     chartRef.current = apx;
     apx.render().catch((e) => console.warn('[ChartOne] render error', e));
@@ -174,7 +177,7 @@ const ChartOne: React.FC<Props> = ({
       chartRef.current.updateOptions({
         xaxis: { categories },
         colors: barColors.length ? barColors : baseOptions.colors,
-        dataLabels: { enabled: isDataLabels },
+        dataLabels: { enabled: isDataLabels }
       });
       chartRef.current.updateSeries(series, true);
     } catch (e) {
@@ -200,7 +203,8 @@ const ChartOne: React.FC<Props> = ({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${title.replace(/\s+/g, '_').toLowerCase()}.csv`;
+        a.download = `${(title || 'chart').replace(/\s+/g, '_').toLowerCase()}.csv`;
+        document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
@@ -210,6 +214,15 @@ const ChartOne: React.FC<Props> = ({
     }
     setIsDropdownOpen(false);
   };
+
+  // If consumer asked for raw canvas only, render just the container div (chart will mount there)
+  if (renderChartOnly) {
+    return (
+      <div className={className}>
+        <div ref={containerRef} id={chartId} style={{ minHeight: '340px' }} className="w-full" />
+      </div>
+    );
+  }
 
   if (!series.length || !categories.length) {
     return <div className="rounded-lg bg-slate-800/50 p-6 text-slate-400">No data available</div>;
@@ -236,16 +249,10 @@ const ChartOne: React.FC<Props> = ({
 
           {isDropdownOpen && (
             <div className="absolute right-0 mt-2 w-44 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-20 py-1 text-sm">
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-slate-700 text-slate-200"
-                onClick={() => handleExport('csv')}
-              >
+              <button className="w-full text-left px-4 py-2 hover:bg-slate-700 text-slate-200" onClick={() => handleExport('csv')}>
                 Export as CSV
               </button>
-              <button
-                className="w-full text-left px-4 py-2 hover:bg-slate-700 text-slate-200"
-                onClick={() => handleExport('png')}
-              >
+              <button className="w-full text-left px-4 py-2 hover:bg-slate-700 text-slate-200" onClick={() => handleExport('png')}>
                 Export as PNG
               </button>
             </div>
@@ -255,12 +262,7 @@ const ChartOne: React.FC<Props> = ({
 
       {/* Chart */}
       <div className="p-5">
-        <div
-          ref={containerRef}
-          id={chartId}
-          style={{ minHeight: '340px' }}
-          className="w-full"
-        />
+        <div ref={containerRef} id={chartId} style={{ minHeight: '340px' }} className="w-full" />
       </div>
     </div>
   );
