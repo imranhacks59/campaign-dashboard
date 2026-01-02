@@ -218,8 +218,7 @@ const Dashboard: React.FC = () => {
                     </div>
                   ) : (
                     <div className="mt-3 text-sm space-y-2">
-                      {/* If there is an SSE error, show it prominently */}
-                      {sseError && (
+                      {/* {sseError && (
                         <div className="mb-3 rounded-md bg-red-900/40 border border-red-700 p-2 text-sm text-red-200">
                           <div className="font-medium">Live updates unavailable</div>
                           <div className="text-xs">{sseError.status ? `Status ${sseError.status}: ` : ''}{sseError.message}</div>
@@ -230,7 +229,6 @@ const Dashboard: React.FC = () => {
                         </div>
                       )}
 
-                      {/* If snapshot fetch errored */}
                       {campaignInsightIsError && (
                         <div className="mb-3 rounded-md bg-yellow-900/30 border border-yellow-700 p-2 text-sm text-yellow-200">
                           <div className="font-medium">Snapshot failed</div>
@@ -239,7 +237,7 @@ const Dashboard: React.FC = () => {
                             <button onClick={retrySnapshot} className="px-2 py-1 bg-yellow-700 text-white rounded text-xs">Retry</button>
                           </div>
                         </div>
-                      )}
+                      )} */}
 
                       <div className="text-xs text-slate-400">Campaign</div>
                       <div className="font-semibold text-slate-100">{selectedCampaignName}</div>
