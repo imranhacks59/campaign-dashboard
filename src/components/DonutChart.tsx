@@ -10,10 +10,26 @@ interface Props {
   className?: string;
 }
 
-const DonutChart: React.FC<Props> = ({ series, labels, title = 'Status', chartId = `donut-${Math.random().toString(36).slice(2, 9)}`, className = '' }) => {
+/**
+ * DonutChart without hover-animation and without a center overlay.
+ * Hover updates the right-side summary only; the chart itself remains static.
+ */
+const DonutChart: React.FC<Props> = ({
+  series,
+  labels,
+  title = 'Campaign Status',
+  chartId = `donut-${Math.random().toString(36).slice(2, 9)}`,
+  className = ''
+}) => {
   const ref = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<any>(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  // index of hovered slice; default to 0 so first slice shown by default
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(0);
+
+  // palette (matches other charts)
+  const colors = ['#1098ff', '#00e396', '#ffc107', '#28a745', '#8e44ad'];
 
   useEffect(() => setIsMounted(true), []);
 
@@ -21,20 +37,61 @@ const DonutChart: React.FC<Props> = ({ series, labels, title = 'Status', chartId
     if (!isMounted || !ref.current) return;
 
     const options: ApexOptions = {
-      chart: { type: 'donut', height: 240, toolbar: { show: false }, id: chartId },
+      chart: {
+        type: 'donut',
+        height: 220,
+        toolbar: { show: false },
+        id: chartId,
+        animations: { enabled: false }, // disable animations so hover doesn't animate slices
+        // states config to stop hover filter/brightness changes
+        states: {
+          hover: {
+            filter: {
+              type: 'none'
+            }
+          }
+        }
+      },
       labels,
-      legend: { position: 'bottom', labels: { colors: ['#cbd5e1', '#cbd5e1', '#cbd5e1'] }, markers: { width: 8, height: 8 } },
+      legend: { show: false }, // custom legend on the right
       stroke: { width: 0 },
       dataLabels: { enabled: false },
-      colors: ['#1098ff', '#00e396', '#ffc107'],
+      colors,
       tooltip: {
         y: {
           formatter: (v: number) => (typeof v === 'number' ? v.toLocaleString() : String(v))
         }
       },
+      plotOptions: {
+        pie: {
+          expandOnClick: false,
+          donut: {
+            size: '65%',
+            labels: {
+              show: false // no center overlay
+            }
+          }
+        }
+      },
       responsive: [
-        { breakpoint: 640, options: { chart: { height: 200 }, legend: { position: 'bottom' } } }
-      ]
+        {
+          breakpoint: 640,
+          options: {
+            chart: { height: 180 },
+            plotOptions: { pie: { donut: { size: '60%' } } }
+          }
+        }
+      ],
+      // events used only to update the hovered index (no animations)
+      events: {
+        dataPointMouseEnter: (_event: any, _chartContext: any, config: any) => {
+          const idx = config?.dataPointIndex;
+          if (typeof idx === 'number') setHoveredIdx(idx);
+        },
+        dataPointMouseLeave: () => {
+          setHoveredIdx(null);
+        }
+      }
     };
 
     const chart = new ApexCharts(ref.current, { ...options, series });
@@ -53,6 +110,7 @@ const DonutChart: React.FC<Props> = ({ series, labels, title = 'Status', chartId
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMounted, chartId]);
 
+  // update series/labels when props change
   useEffect(() => {
     if (!chartRef.current) return;
     try {
@@ -63,12 +121,65 @@ const DonutChart: React.FC<Props> = ({ series, labels, title = 'Status', chartId
     }
   }, [series, labels]);
 
+  const total = series.reduce((acc, v) => acc + (typeof v === 'number' ? v : 0), 0);
+  const activeIdx = hoveredIdx ?? 0;
+
   return (
     <div className={`rounded-lg bg-white/3 border border-slate-800 p-4 shadow-sm ${className}`}>
-      <div className="mb-2">
-        <div className="text-sm font-semibold text-slate-100">{title}</div>
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="text-sm font-semibold text-slate-100">{title}</div>
+          <div className="text-xs text-slate-400 mt-1">Breakdown by status</div>
+        </div>
+
+        <div className="text-xs text-slate-400 ml-4 hidden sm:block text-right">
+          <div className="text-xs">Total</div>
+          <div className="mt-1 text-lg font-semibold text-slate-100">{total.toLocaleString()}</div>
+        </div>
       </div>
-      <div ref={ref} id={chartId} style={{ minHeight: 220 }} />
+
+      <div className="mt-3 flex flex-col sm:flex-row items-center sm:items-start gap-4">
+        {/* Chart area */}
+        <div className="flex-1 min-w-0">
+          <div ref={ref} id={chartId} style={{ minHeight: 180 }} />
+        </div>
+
+        {/* Right-side summary/legend — hovering legend items also sets hovered value */}
+        <div className="w-full sm:w-44">
+          <div className="mb-3 sm:hidden">
+            <div className="text-xs text-slate-400">Total</div>
+            <div className="mt-1 text-lg font-semibold text-slate-100">{total.toLocaleString()}</div>
+          </div>
+
+          <ul className="space-y-3">
+            {labels.map((label, idx) => {
+              const value = series[idx] ?? 0;
+              const color = colors[idx % colors.length];
+              const percent = total > 0 ? ((value / total) * 100) : 0;
+              const isActive = idx === activeIdx;
+
+              return (
+                <li
+                  key={label}
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  className={`flex items-center justify-between px-2 py-1 rounded ${isActive ? 'bg-white/5' : ''} cursor-default`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="flex-none w-3 h-3 rounded-full" style={{ backgroundColor: color }} aria-hidden="true" />
+                    <span className="text-sm text-slate-100 truncate">{label}</span>
+                  </div>
+
+                  <div className="text-sm font-medium text-slate-100 text-right">
+                    <div>{(value as number).toLocaleString()}</div>
+                    <div className="text-xs text-slate-400">{percent.toFixed(1)}%</div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 };

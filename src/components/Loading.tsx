@@ -1,17 +1,12 @@
 import React from 'react';
 
-/**
- * Page-level loading skeleton that mirrors the dashboard layout.
- * Used while campaigns or aggregate insights are loading.
- */
 const Loading: React.FC<{ message?: string }> = ({ message = 'Loading dashboard...' }) => {
   return (
-    <div className="space-y-6 animate-pulse">
-      {/* Page header */}
-      <div className="h-10 w-1/3 bg-slate-800 rounded" />
+    <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 animate-pulse">
+      <div className="h-10 w-1/3 bg-slate-800 rounded mb-6" />
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="h-20 rounded-lg bg-slate-800" />
         <div className="h-20 rounded-lg bg-slate-800" />
         <div className="h-20 rounded-lg bg-slate-800" />
@@ -35,7 +30,6 @@ const Loading: React.FC<{ message?: string }> = ({ message = 'Loading dashboard.
         </div>
       </div>
 
-      <div className="text-sm text-slate-400">{message}</div>
     </div>
   );
 };

@@ -1,16 +1,16 @@
 import { useEffect, useRef } from 'react';
 import { campaignsApi } from '../api/campaigns';
-import type { CampaignInsight } from '../types';
+import { CampaignInsight } from '@/types/types';
 
 type Handler = (payload: CampaignInsight) => void;
+type ErrorHandler = (err: { status?: number; message?: string; timestamp?: string; raw?: any }) => void;
 
-/**
- * Subscribes to campaign SSE for a given campaignId.
- * - Guarantees any previous EventSource is closed before opening a new one.
- * - Only invokes onMessage for events whose payload.campaign_id matches the requested campaignId.
- * - Minimizes effect re-creation by depending only on campaignId.
- */
-export const useCampaignSSE = (campaignId: string | null, onMessage: Handler) => {
+
+export const useCampaignSSE = (
+  campaignId: string | null,
+  onMessage: Handler,
+  onError?: ErrorHandler
+) => {
   const esRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
@@ -18,11 +18,14 @@ export const useCampaignSSE = (campaignId: string | null, onMessage: Handler) =>
     if (esRef.current) {
       try {
         esRef.current.close();
-      } catch (e) {}
+      } catch (e) {
+        // ignore close errors
+      }
       esRef.current = null;
     }
 
     if (!campaignId) {
+      // nothing to subscribe to
       return;
     }
 
@@ -37,18 +40,40 @@ export const useCampaignSSE = (campaignId: string | null, onMessage: Handler) =>
         if (parsed?.campaign_id === campaignId) {
           onMessage(parsed);
         } else {
-          // Helpful debug logging when backend sends unexpected campaign ids
           // eslint-disable-next-line no-console
           console.warn('[SSE] Ignored payload for', parsed?.campaign_id, 'while subscribed to', campaignId);
         }
       } catch (e) {
-        // ignore parse errors
+        // parsing failed — surface raw data to onError if provided
+        if (onError) {
+          onError({ message: 'Failed to parse SSE payload', raw: ev.data });
+        }
       }
     };
 
-    const handleError = (err: any) => {
-      // eslint-disable-next-line no-console
-      console.warn('[SSE] error for', campaignId, err);
+    const handleError = (ev: any) => {
+      // Try to read a JSON body from the event if available (some servers send an error event with data)
+      try {
+        const data = ev?.data;
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (onError) onError({ status: parsed?.status, message: parsed?.message || parsed?.error, timestamp: parsed?.timestamp, raw: parsed });
+            return;
+          } catch {
+            // not JSON
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+
+      // Generic error fallback
+      if (onError) {
+        onError({ message: 'SSE connection error', raw: ev });
+      }
+
+      // Close the stream on error (server unreachable / closed)
       try {
         es.close();
       } catch (e) {}
@@ -65,8 +90,7 @@ export const useCampaignSSE = (campaignId: string | null, onMessage: Handler) =>
       } catch (e) {}
       if (esRef.current === es) esRef.current = null;
     };
-    // We intentionally depend only on campaignId to avoid re-creating channels when
-    // the onMessage handler function is re-created by parent renders.
+    // Intentionally depend only on campaignId so we don't recreate when parent re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignId]);
 };

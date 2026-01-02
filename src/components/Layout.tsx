@@ -29,7 +29,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         className="sticky top-0 z-50 w-full border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm"
         style={{ height: 'var(--header-height)' }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
           <div className="flex items-center justify-between h-full">
             {/* Left: brand / menu */}
             <div className="flex items-center gap-3">
@@ -96,7 +96,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       </header>
 
       {/* main — add top padding equal to the header height so content doesn't jump under it */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" style={{ paddingTop: 'calc(24px)' }}>
+      <main className="max-w-8xl mx-auto px-4 sm:px-4 lg:px-6 py-6" style={{ paddingTop: 'calc(24px)' }}>
         {children}
       </main>
     </div>
