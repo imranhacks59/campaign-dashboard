@@ -7,6 +7,7 @@ import ChartOne from '../components/ChartOne';
 import DonutChart from '../components/DonutChart';
 import CampaignList from '../components/CampaignList';
 import Loading from '../components/Loading';
+import LiveMetricSkeleton from '../components/LiveMetricSkeleton';
 import { useCampaignSSE } from '../hooks/useCampaignSSE';
 import AggregateInsightsCard from '../components/AggregateInsightsCard';
 
@@ -43,9 +44,26 @@ const Dashboard: React.FC = () => {
   const [selectedCampaign, setSelectedCampaign] = React.useState<string | null>(null);
   const [liveMetric, setLiveMetric] = React.useState<any>(null);
 
+  // Subscribe to SSE for selected campaign and update live metrics when matching payload arrives
   useCampaignSSE(selectedCampaign, (payload) => {
     setLiveMetric(payload);
   });
+
+  // Select the first campaign by default once campaigns load
+  React.useEffect(() => {
+    if (!selectedCampaign && campaigns.length > 0) {
+      setSelectedCampaign(campaigns[0].id);
+      setLiveMetric(null);
+    }
+    // only run when campaigns list changes or selectedCampaign is null
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campaigns]);
+
+  const handleSelectCampaign = (id: string) => {
+    if (id === selectedCampaign) return;
+    setSelectedCampaign(id);
+    setLiveMetric(null); // clear prior metric while new stream connects
+  };
 
   const handleRefresh = async () => {
     await Promise.all([refetchCampaigns(), refetchAgg()]);
@@ -57,6 +75,7 @@ const Dashboard: React.FC = () => {
     return `${c.name} ${c.brand_id} ${c.platforms?.join(' ')}`.toLowerCase().includes(q);
   });
 
+  // Page-level skeleton while campaigns or aggregate insights are loading
   if (campaignsLoading || aggLoading) return <Loading />;
 
   // prepare chart series
@@ -69,6 +88,14 @@ const Dashboard: React.FC = () => {
     aggData?.insights?.paused_campaigns ?? 0,
     aggData?.insights?.completed_campaigns ?? 0
   ];
+
+  // find human-readable name for selected campaign
+  const selectedCampaignObj = campaigns.find((c) => c.id === selectedCampaign);
+  const selectedCampaignName = selectedCampaignObj?.name ?? selectedCampaign ?? '';
+
+  // formatters for Live Metrics
+  const fmt = (n?: number) => (typeof n === 'number' ? n.toLocaleString() : '—');
+  const fmtMoney = (n?: number) => (typeof n === 'number' ? `$${n.toLocaleString()}` : '—');
 
   return (
     <Layout>
@@ -119,11 +146,12 @@ const Dashboard: React.FC = () => {
             <div style={{ position: 'sticky', top: 'calc(var(--header-height) + 24px)' }}>
               <CampaignList
                 items={filteredCampaigns}
-                onSelect={(id) => setSelectedCampaign(id)}
+                onSelect={handleSelectCampaign}
                 selectedId={selectedCampaign}
                 maxHeight="calc(100vh - 220px)"
               />
             </div>
+
       
           </div>
 
@@ -154,24 +182,45 @@ const Dashboard: React.FC = () => {
           <div className="xl:col-span-3 space-y-4 self-start">
             <div className="rounded-lg bg-white/3 border border-slate-800 p-4 shadow-sm">
               <h3 className="text-sm font-medium text-slate-100">Live Metrics</h3>
+
+              {/* If a campaign is selected but stream hasn't provided data yet, show skeleton */}
               {selectedCampaign ? (
-                <div className="mt-3 text-sm space-y-2">
-                  <div className="text-xs text-slate-400">Campaign</div>
-                  <div className="font-semibold text-slate-100">{selectedCampaign}</div>
-                  <div className="pt-2 border-t border-slate-800">
-                    <div className="text-xs text-slate-400">Impressions</div>
-                    <div className="font-semibold text-slate-100">{formatNumber(liveMetric?.impressions)}</div>
+                <>
+                  {!liveMetric ? (
+                    <div className="mt-3">
+                      <LiveMetricSkeleton />
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-sm space-y-2">
+                      <div className="text-xs text-slate-400">Campaign</div>
+                      <div className="font-semibold text-slate-100">{selectedCampaignName}</div>
 
-                    <div className="text-xs text-slate-400 mt-2">Clicks</div>
-                    <div className="font-semibold text-slate-100">{formatNumber(liveMetric?.clicks)}</div>
+                      <div className="pt-2 border-t border-slate-800">
+                        <div className="text-xs text-slate-400">Impressions</div>
+                        <div className="font-semibold text-slate-100">{fmt(liveMetric?.impressions)}</div>
 
-                    <div className="text-xs text-slate-400 mt-2">Conversions</div>
-                    <div className="font-semibold text-slate-100">{formatNumber(liveMetric?.conversions)}</div>
+                        <div className="text-xs text-slate-400 mt-2">Clicks</div>
+                        <div className="font-semibold text-slate-100">{fmt(liveMetric?.clicks)}</div>
 
-                    <div className="text-xs text-slate-400 mt-2">Spend</div>
-                    <div className="font-semibold text-slate-100">{formatCurrency(liveMetric?.spend)}</div>
-                  </div>
-                </div>
+                        <div className="text-xs text-slate-400 mt-2">Conversions</div>
+                        <div className="font-semibold text-slate-100">{fmt(liveMetric?.conversions)}</div>
+
+                        <div className="text-xs text-slate-400 mt-2">Spend</div>
+                        <div className="font-semibold text-slate-100">{fmtMoney(liveMetric?.spend)}</div>
+
+                        <div className="text-xs text-slate-400 mt-2">CTR</div>
+                        <div className="font-semibold text-slate-100">
+                          {liveMetric?.ctr != null ? `${Number(liveMetric.ctr).toFixed(2)}%` : '—'}
+                        </div>
+
+                        <div className="text-xs text-slate-400 mt-2">CPC</div>
+                        <div className="font-semibold text-slate-100">
+                          {liveMetric?.cpc != null ? `$${Number(liveMetric.cpc).toFixed(2)}` : '—'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="mt-3 text-sm text-slate-400">Select a campaign from the list to stream real-time metrics.</div>
               )}
