@@ -110,19 +110,15 @@ const ChartOne: React.FC<Props> = ({
 
     return () => {
       try {
-        // safe destroy wrapped in try/catch to avoid parentNode null errors
         if (chartRef.current && chartRef.current.destroy) {
           chartRef.current.destroy();
         }
       } catch (e) {
-        // eslint-disable-next-line no-console
         console.warn('[ChartOne] destroy failed', e);
       } finally {
         chartRef.current = null;
       }
     };
-    // We intentionally don't include series/categories in deps to avoid re-creating chart
-    // for every small update — you can add update logic below if needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMounted, chartId, barColors]);
 
